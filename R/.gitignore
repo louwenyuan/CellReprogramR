@@ -1,0 +1,4 @@
+*.parquet
+*.rds
+*.gctx
+*.gz
