@@ -1,29 +1,182 @@
 #' @title Dynamically Retrieve Local Data File Paths
-#' @description Locates local database Parquet files and expression matrices for analysis.
-#' Priority is given to user options, fallback paths (`D:/Cell`), or local working directory `./data` folders.
+#' @description Locates database Parquet files and expression matrices dynamically.
+#' Checks all potential local paths for existing files before attempting resumable download.
 #'
-#' @param data_dir Character. Root folder containing data files. Default resolves dynamically.
+#' Resolution Priority for Local Path Check:
+#' 1. Explicit \code{data_dir} argument
+#' 2. R global option \code{getOption("CellReprogramR.data_dir")}
+#' 3. System environment variable \code{Sys.getenv("CELLREPROGRAMR_DATA_DIR")}
+#' 4. Working directory folder \code{./data}
+#' 5. Cross-platform user cache directory via \code{tools::R_user_dir("CellReprogramR", which = "cache")}
 #'
-#' @return A named list containing file paths for L1000, TCGA, and CGGA datasets.
+#' @param data_dir Character string. Custom directory containing data files. Default resolves dynamically.
+#' @param auto_download Logical. If TRUE, automatically downloads missing database files. Default is TRUE.
+#'
+#' @return A named list containing resolved file paths for L1000, TCGA, and CGGA datasets.
+#' @importFrom tools R_user_dir
+#' @importFrom utils download.file
 #' @export
-get_data_paths <- function(data_dir = NULL) {
-  if (is.null(data_dir)) {
-    data_dir <- getOption(
-      "CellReprogramR.data_dir",
-      default = if (dir.exists("D:/Cell")) "D:/Cell" else file.path(getwd(), "data")
-    )
+get_data_paths <- function(data_dir = NULL, auto_download = TRUE) {
+
+  # CLI dependency check for safe user logging
+  has_cli <- requireNamespace("cli", quietly = TRUE)
+  log_info    <- function(msg) if (has_cli) cli::cli_alert_info(msg) else message("[INFO] ", msg)
+  log_success <- function(msg) if (has_cli) cli::cli_alert_success(msg) else message("[OK] ", msg)
+  log_warn    <- function(msg) if (has_cli) cli::cli_alert_warning(msg) else message("[WARN] ", msg)
+  log_danger  <- function(msg) if (has_cli) cli::cli_alert_danger(msg) else message("[ERROR] ", msg)
+
+  # Priority matrix file candidates (prefer small 235MB quantized -> fast -> standard)
+  matrix_candidates <- c(
+    "l1000_cns_matrix_quant.parquet",
+    "l1000_cns_matrix_fast.parquet",
+    "l1000_cns_matrix.parquet"
+  )
+
+  # 1. Collect all potential local directories to scan
+  cache_dir <- tools::R_user_dir("CellReprogramR", which = "cache")
+  local_data_dir <- file.path(getwd(), "data")
+
+  opt_dir <- getOption("CellReprogramR.data_dir", default = NULL)
+  env_dir <- Sys.getenv("CELLREPROGRAMR_DATA_DIR", unset = "")
+
+  scan_dirs <- unique(c(
+    if (!is.null(data_dir) && data_dir != "") data_dir,
+    if (!is.null(opt_dir) && opt_dir != "") opt_dir,
+    if (env_dir != "") env_dir,
+    local_data_dir,
+    cache_dir
+  ))
+
+  # Helper: Scan ALL local paths for existing matrix files
+  found_matrix_path <- NULL
+  found_data_dir    <- NULL
+
+  for (dir in scan_dirs) {
+    if (dir.exists(dir)) {
+      for (mat_name in matrix_candidates) {
+        check_p <- file.path(dir, mat_name)
+        if (file.exists(check_p) && file.info(check_p)$size > 1024) { # ensure non-empty
+          found_matrix_path <- check_p
+          found_data_dir    <- dir
+          break
+        }
+      }
+    }
+    if (!is.null(found_matrix_path)) break
   }
 
-  # Auto-detect Parquet matrix filename (fast version vs standard version)
-  l1000_mat_path <- file.path(data_dir, "l1000_cns_matrix_fast.parquet")
-  if (!file.exists(l1000_mat_path)) {
-    alt_path <- file.path(data_dir, "l1000_cns_matrix.parquet")
-    if (file.exists(alt_path)) {
-      l1000_mat_path <- alt_path
+  # 2. Determine target data directory and matrix path
+  if (!is.null(found_matrix_path)) {
+    # Existing file detected locally
+    data_dir       <- found_data_dir
+    l1000_mat_path <- found_matrix_path
+  } else {
+    # No existing matrix found in any search path -> Resolve primary target dir for new download
+    if (is.null(data_dir) || data_dir == "") {
+      data_dir <- if (!is.null(opt_dir) && opt_dir != "") opt_dir else env_dir
     }
+    if (is.null(data_dir) || data_dir == "") {
+      data_dir <- if (dir.exists(local_data_dir)) local_data_dir else cache_dir
+    }
+
+    # Default target matrix file for new downloads is the 235MB quant file
+    l1000_mat_path <- file.path(data_dir, "l1000_cns_matrix_quant.parquet")
   }
+
+  if (!dir.exists(data_dir)) {
+    dir.create(data_dir, recursive = TRUE, showWarnings = FALSE)
+  }
+
+  l1000_meta_path <- file.path(data_dir, "l1000_cns_meta.parquet")
+
+  # 3. Robust & Resumable Download Helper Function
+  base_url <- getOption(
+    "CellReprogramR.base_url",
+    default = "https://github.com/louwenyuan/CellReprogramR/releases/download/v0.1.0"
+  )
+
+  rtrim_slash <- function(x) sub("/+$", "", x)
+
+  download_resumable <- function(dest_path, file_name) {
+    if (file.exists(dest_path) && file.info(dest_path)$size > 1024) {
+      return(TRUE) # File exists and is valid
+    }
+
+    if (!auto_download) {
+      log_warn(sprintf("Missing dataset file: %s (auto_download is set to FALSE)", dest_path))
+      return(FALSE)
+    }
+
+    download_url <- paste0(rtrim_slash(base_url), "/", file_name)
+    tmp_path     <- paste0(dest_path, ".tmp")
+
+    log_info(sprintf("Preparing auto-download for '%s' to: %s", file_name, dest_path))
+
+    # Temporarily extend timeout for large downloads (7200 seconds / 2 hours)
+    old_timeout <- getOption("timeout")
+    options(timeout = max(7200, old_timeout))
+    on.exit(options(timeout = old_timeout), add = TRUE)
+
+    # Check for existing partial download to support Range (resumable) requests
+    start_bytes <- if (file.exists(tmp_path)) file.info(tmp_path)$size else 0
+
+    dl_success <- FALSE
+
+    tryCatch({
+      if (start_bytes > 0) {
+        log_info(sprintf("Resuming interrupted download from %.2f MB...", start_bytes / (1024 * 1024)))
+        # Use libcurl HTTP Range header for resuming partial download
+        dl_code <- utils::download.file(
+          url      = download_url,
+          destfile = tmp_path,
+          mode     = "ab", # append binary mode
+          headers  = c(Range = sprintf("bytes=%d-", start_bytes)),
+          quiet    = FALSE,
+          method   = "libcurl"
+        )
+      } else {
+        dl_code <- utils::download.file(
+          url      = download_url,
+          destfile = tmp_path,
+          mode     = "wb",
+          quiet    = FALSE,
+          method   = "libcurl"
+        )
+      }
+      if (dl_code == 0 && file.exists(tmp_path) && file.info(tmp_path)$size > 1024) {
+        file.rename(tmp_path, dest_path)
+        dl_success <- TRUE
+      }
+    }, error = function(e) {
+      log_warn(sprintf("Download attempt encounterd an issue: %s", e$message))
+    })
+
+    # Fallback retry if libcurl Range request fails
+    if (!dl_success && (!file.exists(dest_path) || file.info(dest_path)$size <= 1024)) {
+      log_info("Retrying fresh download...")
+      if (file.exists(tmp_path)) unlink(tmp_path)
+      tryCatch({
+        utils::download.file(url = download_url, destfile = dest_path, mode = "wb", quiet = FALSE)
+      }, error = function(e) NULL)
+    }
+
+    # Final integrity check
+    if (!file.exists(dest_path) || file.info(dest_path)$size <= 1024) {
+      log_danger(sprintf("Failed to download asset: %s", file_name))
+      stop(sprintf("Download failed for '%s'. Please check your network connection or manually place the file in '%s'.",
+                   file_name, data_dir), call. = FALSE)
+    }
+
+    log_success(sprintf("Asset '%s' ready (Size: %.2f MB).",
+                        file_name, file.info(dest_path)$size / (1024 * 1024)))
+  }
+
+  # Execute downloads if missing
+  download_resumable(l1000_mat_path, basename(l1000_mat_path))
+  download_resumable(l1000_meta_path, "l1000_cns_meta.parquet")
 
   paths <- list(
+    data_dir      = data_dir,
     tcga_gbm      = file.path(data_dir, "TCGA-GBM_mrna_expr_fpkm.csv"),
     tcga_lgg      = file.path(data_dir, "TCGA-LGG_mrna_expr_fpkm.csv"),
     tcga_clin_gbm = file.path(data_dir, "TCGA-GBM_clinicalSE.csv"),
@@ -31,21 +184,22 @@ get_data_paths <- function(data_dir = NULL) {
     cgga_expr     = file.path(data_dir, "CGGA.mRNAseq.txt"),
     cgga_clin     = file.path(data_dir, "CGGA.clinical.20200506.txt"),
     l1000_matrix  = l1000_mat_path,
-    l1000_meta    = file.path(data_dir, "l1000_cns_meta.parquet")
+    l1000_meta    = l1000_meta_path
   )
+
   return(paths)
 }
 
 
-#' @title Fast Query Local L1000 Parquet File via DuckDB
-#' @description Extracts specified gene Z-scores from local transposed Parquet databases using DuckDB,
-#' automatically converting output into a (Genes x Samples) numeric matrix.
+#' @title Fast Local L1000 Expression Matrix Query via DuckDB
+#' @description Extracts specified target gene Z-scores from local L1000 Parquet files
+#' using DuckDB in-memory engine. Automatically performs de-quantization (/100) if querying quantized matrices.
 #'
-#' @param target_genes Character vector. Target gene symbols to extract.
-#' @param local_parquet_path Character. Path to L1000 expression Parquet file. Auto-resolved if NULL.
-#' @param return_matrix Logical. Whether to return a transposed numeric matrix (Genes x Samples). Default is TRUE.
+#' @param target_genes Character vector. Gene symbols to query.
+#' @param local_parquet_path Character string. Path to L1000 expression Parquet file. Auto-resolved if NULL.
+#' @param return_matrix Logical. If TRUE, returns a transposed numeric matrix (Genes x Samples). Default is TRUE.
 #'
-#' @return A numeric matrix (Genes x Samples) if `return_matrix = TRUE`, otherwise a data.frame.
+#' @return A numeric matrix (Genes x Samples) if \code{return_matrix = TRUE}, otherwise a data.frame.
 #'
 #' @importFrom DBI dbConnect dbDisconnect dbGetQuery dbQuoteIdentifier
 #' @importFrom duckdb duckdb
@@ -58,49 +212,50 @@ query_l1000_local <- function(target_genes,
 
   # Dependency check: Safe CLI logging
   has_cli <- requireNamespace("cli", quietly = TRUE)
-  log_info <- function(msg) if (has_cli) cli::cli_alert_info(msg) else message("[INFO] ", msg)
+  log_info    <- function(msg) if (has_cli) cli::cli_alert_info(msg) else message("[INFO] ", msg)
   log_success <- function(msg) if (has_cli) cli::cli_alert_success(msg) else message("[OK] ", msg)
-  log_danger <- function(msg) if (has_cli) cli::cli_alert_danger(msg) else message("[ERROR] ", msg)
+  log_danger  <- function(msg) if (has_cli) cli::cli_alert_danger(msg) else message("[ERROR] ", msg)
 
+  # Auto-resolve file path and trigger download if needed
   if (is.null(local_parquet_path)) {
-    local_parquet_path <- get_data_paths()$l1000_matrix
+    local_parquet_path <- get_data_paths(auto_download = TRUE)$l1000_matrix
   }
 
   if (!file.exists(local_parquet_path)) {
     log_danger(sprintf("Parquet matrix file not found at path: %s", local_parquet_path))
-    stop("Invalid `local_parquet_path`. Check file path or place data in ./data directory.", call. = FALSE)
+    stop("Invalid `local_parquet_path`. File is missing and auto-download failed.", call. = FALSE)
   }
 
   if (!requireNamespace("duckdb", quietly = TRUE) || !requireNamespace("DBI", quietly = TRUE)) {
-    stop("Packages 'duckdb' and 'DBI' are required. Install them via install.packages(c('duckdb', 'DBI')).", call. = FALSE)
+    stop("Packages 'duckdb' and 'DBI' are required. Install via install.packages(c('duckdb', 'DBI')).", call. = FALSE)
   }
 
-  # Clean input gene symbols
+  # Sanitize and validate input gene symbols
   target_genes <- unique(trimws(as.character(target_genes)))
   target_genes <- target_genes[!is.na(target_genes) & target_genes != ""]
 
   if (length(target_genes) == 0) {
-    stop("Provided `target_genes` vector is empty after cleaning.", call. = FALSE)
+    stop("Provided `target_genes` vector is empty after sanitization.", call. = FALSE)
   }
 
-  # Normalize Windows paths to avoid SQL escape issues
+  # Normalize paths for Windows/Unix compatibility
   norm_path <- normalizePath(local_parquet_path, winslash = "/", mustWork = FALSE)
 
-  # 1. Establish DuckDB in-memory connection
+  # 1. Establish DuckDB connection with guaranteed release on exit
   con <- DBI::dbConnect(duckdb::duckdb())
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
 
   # 2. Inspect Schema
-  log_info("Validating Parquet database schema and gene column mapping...")
+  log_info("Validating Parquet database schema and gene column mappings...")
   dummy_df <- DBI::dbGetQuery(con, sprintf("SELECT * FROM '%s' LIMIT 0", norm_path))
   all_cols <- colnames(dummy_df)
 
   if (!"sig_id" %in% all_cols) {
-    log_danger("Primary key column 'sig_id' is missing from Parquet file schema!")
+    log_danger("Primary key column 'sig_id' is missing from Parquet schema!")
     stop("Malformed Parquet database schema.", call. = FALSE)
   }
 
-  # 3. Intersection and case-insensitive fallback matching
+  # 3. Intersection with fallback case-insensitive matching
   valid_genes <- setdiff(intersect(target_genes, all_cols), "sig_id")
 
   if (length(valid_genes) == 0) {
@@ -112,7 +267,7 @@ query_l1000_local <- function(target_genes,
   }
 
   if (length(valid_genes) == 0) {
-    stop("None of the target genes were found in the Parquet database schema.", call. = FALSE)
+    stop("None of the specified target genes were found in the Parquet database schema.", call. = FALSE)
   }
 
   missing_genes <- setdiff(target_genes, valid_genes)
@@ -121,7 +276,16 @@ query_l1000_local <- function(target_genes,
                      length(missing_genes), paste(utils::head(missing_genes, 3), collapse = ", ")))
   }
 
-  # 4. Construct safe SQL query for column extraction
+  # 4. Detect quantization status (file name tag or integer column type)
+  first_gene_col <- valid_genes[1]
+  is_quantized   <- grepl("quant", norm_path, ignore.case = TRUE) ||
+    inherits(dummy_df[[first_gene_col]], c("integer", "integer64"))
+
+  if (is_quantized) {
+    log_info("Quantized matrix detected. Automatic de-quantization (/100) will be applied.")
+  }
+
+  # 5. Construct SQL query with identifier quoting
   quoted_genes <- paste(DBI::dbQuoteIdentifier(con, valid_genes), collapse = ", ")
   query_str <- sprintf("SELECT \"sig_id\", %s FROM '%s'", quoted_genes, norm_path)
 
@@ -134,76 +298,25 @@ query_l1000_local <- function(target_genes,
   log_success(sprintf("Extraction complete! Time elapsed: %.3f seconds.",
                       as.numeric(end_time - start_time, units = "secs")))
 
-  # 5. Format into (Genes x Samples) numeric matrix
+  # 6. Format into (Genes x Samples) numeric matrix & apply de-quantization
   if (return_matrix) {
     sig_ids <- as.character(res$sig_id)
     mat_data <- as.matrix(res[, valid_genes, drop = FALSE])
     mat_data[is.na(mat_data)] <- 0
 
+    # Fast C-level matrix de-quantization
+    if (is_quantized) {
+      mat_data <- mat_data / 100
+    }
+
     z_matrix <- t(mat_data)
     rownames(z_matrix) <- valid_genes
     colnames(z_matrix) <- sig_ids
     return(z_matrix)
-  }
-
-  return(res)
-}
-
-
-#' @title Query L1000 Perturbation Metadata via DuckDB
-#' @description Retrieves metadata annotations (e.g., drug names `pert_iname`, cell line, dosage)
-#' for specified signature IDs (`sig_id`) from local Parquet metadata files.
-#'
-#' @param sig_ids Character vector. Signature IDs to query. Returns all metadata if NULL or empty.
-#' @param local_meta_path Character. Path to metadata Parquet file. Auto-resolved if NULL.
-#'
-#' @return A data.frame containing metadata annotations.
-#'
-#' @importFrom DBI dbConnect dbDisconnect dbGetQuery
-#' @importFrom duckdb duckdb duckdb_register duckdb_unregister
-#' @export
-query_l1000_meta <- function(sig_ids = NULL,
-                             local_meta_path = NULL) {
-
-  # Dependency check: Safe CLI logging
-  has_cli <- requireNamespace("cli", quietly = TRUE)
-  log_info <- function(msg) if (has_cli) cli::cli_alert_info(msg) else message("[INFO] ", msg)
-  log_danger <- function(msg) if (has_cli) cli::cli_alert_danger(msg) else message("[ERROR] ", msg)
-
-  if (is.null(local_meta_path)) {
-    local_meta_path <- get_data_paths()$l1000_meta
-  }
-
-  if (!file.exists(local_meta_path)) {
-    log_danger(sprintf("Metadata Parquet file not found at path: %s", local_meta_path))
-    stop("Invalid `local_meta_path`.", call. = FALSE)
-  }
-
-  norm_meta_path <- normalizePath(local_meta_path, winslash = "/", mustWork = FALSE)
-
-  con <- DBI::dbConnect(duckdb::duckdb())
-  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
-
-  if (is.null(sig_ids) || length(sig_ids) == 0) {
-    log_info("Fetching complete L1000 metadata table...")
-    res <- DBI::dbGetQuery(con, sprintf("SELECT * FROM '%s'", norm_meta_path))
   } else {
-    sig_ids <- unique(as.character(sig_ids))
-    sig_ids <- sig_ids[!is.na(sig_ids) & sig_ids != ""]
-
-    log_info(sprintf("Querying metadata for %d signature ID(s)...", length(sig_ids)))
-
-    # Register in-memory temporary table to handle large vector inputs cleanly without SQL stack overflows
-    temp_df <- data.frame(sig_id = sig_ids, stringsAsFactors = FALSE)
-    duckdb::duckdb_register(con, "tmp_query_ids", temp_df)
-    on.exit(duckdb::duckdb_unregister(con, "tmp_query_ids"), add = TRUE)
-
-    query_str <- sprintf(
-      "SELECT * FROM '%s' WHERE sig_id IN (SELECT sig_id FROM tmp_query_ids)",
-      norm_meta_path
-    )
-    res <- DBI::dbGetQuery(con, query_str)
+    if (is_quantized) {
+      res[, valid_genes] <- res[, valid_genes] / 100
+    }
+    return(res)
   }
-
-  return(res)
 }
