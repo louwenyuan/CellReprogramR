@@ -56,6 +56,19 @@ run_reprogramming_pipeline <- function(
   start_all <- Sys.time()
   if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
 
+  # ---------------------------------------------------------------------------
+  # 自动回退机制：未传参时自动读取 R 包内部 inst/extdata 的 Demo 数据
+  # ---------------------------------------------------------------------------
+  if (is.null(obj) && (is.null(rds_path) || rds_path == "")) {
+    rds_path <- system.file("extdata", "demo_seurat.rds", package = "CellReprogramR")
+  }
+  if (is.null(parquet_path) || parquet_path == "") {
+    parquet_path <- system.file("extdata", "l1000_cns_matrix_demo.parquet", package = "CellReprogramR")
+  }
+  if (is.null(meta_parquet_path) || meta_parquet_path == "") {
+    meta_parquet_path <- system.file("extdata", "l1000_cns_meta_demo.parquet", package = "CellReprogramR")
+  }
+
   message("\n=========================================================================")
   message(" [CellReprogramR] Launching Single-Cell Reprogramming Master Engine... ")
   message("=========================================================================\n")
