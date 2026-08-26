@@ -46,3 +46,17 @@ results <- run_reprogramming_pipeline(
   meta_parquet_path = "D:/Cell/data/l1000_cns_meta.parquet",  # Path to your L1000 metadata
   output_dir        = "./Output"
 )
+
+
+
+📥 Reference Data Download
+Large-scale perturbation reference databases (LINCS/L1000 CNS) are hosted on the GitHub Releases (v0.1.0) page to keep the R package lightweight.
+
+You can download the reference files manually from GitHub Releases or automatically via R:
+
+File Description
+l1000_cns_meta.parquet: Metadata table for CNS perturbation profiles (required).
+
+l1000_cns_matrix_fast.parquet: Full-precision L1000 expression matrix (optimized for speed).
+
+l1000_cns_matrix_quant.parquet: Quantized/compressed L1000 matrix (optimized for low memory/disk usage).
