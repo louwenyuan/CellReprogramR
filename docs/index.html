@@ -1,0 +1,529 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>CellReprogramR Quick Start</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poiret+One&family=Josefin+Sans:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap">
+<style>
+/* Layout: a single art-deco column. Sunburst hero, gilt dividers, colour-keyed callout blocks, dark code plates. */
+:root{
+  --bg:#0B1B1D; --surface:#112A2D; --surface-2:#163538;
+  --ink:#F0E7D3; --muted:#A8B7B0; --gold:#D9B25F; --gold-deep:#B58B33; --rule:rgba(217,178,95,.45);
+  --code-bg:#07100F; --code-fg:#E7E0CE; --code-bar:#0F1F20;
+  --tk-com:#7F9A93; --tk-str:#E9C46A; --tk-fn:#7FD1B9; --tk-arg:#F2A2A0; --tk-num:#9EC5F0; --tk-kw:#D9A6F5;
+  --note-bg:#134A3F; --note-fg:#D8F3EA; --note-edge:#3FBF9F;
+  --info-bg:#173A63; --info-fg:#DCEAFB; --info-edge:#6FA8EA;
+  --tip-bg:#5B4515; --tip-fg:#FBEFCB; --tip-edge:#E3B94F;
+  --warn-bg:#5A1F2C; --warn-fg:#FBDDE1; --warn-edge:#E86A80;
+  --font-display:'Poiret One','Josefin Sans',system-ui,sans-serif;
+  --font-body:'Josefin Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'Fira Code',ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#F3ECDB; --surface:#FBF7EC; --surface-2:#EDE3CB;
+    --ink:#14282A; --muted:#4F625E; --gold:#8A6516; --gold-deep:#6E4F0E; --rule:rgba(138,101,22,.55);
+    --note-bg:#CFEBDF; --note-fg:#0C3B30; --note-edge:#1F7A62;
+    --info-bg:#D3E3F7; --info-fg:#10325A; --info-edge:#2C5A8F;
+    --tip-bg:#F4E2AE; --tip-fg:#4A360A; --tip-edge:#B58B33;
+    --warn-bg:#F5D3D8; --warn-fg:#561826; --warn-edge:#9A2E3F;
+    color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#F3ECDB; --surface:#FBF7EC; --surface-2:#EDE3CB;
+  --ink:#14282A; --muted:#4F625E; --gold:#8A6516; --gold-deep:#6E4F0E; --rule:rgba(138,101,22,.55);
+  --note-bg:#CFEBDF; --note-fg:#0C3B30; --note-edge:#1F7A62;
+  --info-bg:#D3E3F7; --info-fg:#10325A; --info-edge:#2C5A8F;
+  --tip-bg:#F4E2AE; --tip-fg:#4A360A; --tip-edge:#B58B33;
+  --warn-bg:#F5D3D8; --warn-fg:#561826; --warn-edge:#9A2E3F;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{ color-scheme:dark; }
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--font-body); font-size:17px; line-height:1.65; font-weight:400;
+  padding-block:0;
+  padding-left:max(16px, env(safe-area-inset-left,0px));
+  padding-right:max(16px, env(safe-area-inset-right,0px));
+}
+.wrap{max-width:920px; margin:0 auto}
+h1,h2,h3{font-family:var(--font-display); font-weight:400; text-wrap:balance; margin:0}
+p{margin:0 0 1em; max-width:68ch}
+a{color:var(--gold)}
+code.i{font-family:var(--font-mono); font-size:.86em; background:var(--surface-2); padding:.12em .4em; color:var(--gold)}
+:focus-visible{outline:2px solid var(--gold); outline-offset:3px}
+
+/* ---------- hero ---------- */
+.hero{position:relative; text-align:center; padding:clamp(40px,8vw,84px) 0 40px; overflow:hidden}
+.sun{display:block; width:min(560px,92%); height:auto; margin:0 auto -6px}
+.eyebrow{font-size:.78rem; letter-spacing:.42em; text-transform:uppercase; color:var(--gold); font-weight:600; margin-bottom:14px}
+.hero h1{font-size:clamp(2.6rem,9vw,5.4rem); line-height:1; letter-spacing:.04em; color:var(--ink)}
+.hero h1 span{color:var(--gold)}
+.sub{font-size:1.08rem; color:var(--muted); letter-spacing:.14em; text-transform:uppercase; margin:18px auto 0; font-weight:300}
+.quote{margin:26px auto 0; font-family:var(--font-display); font-size:1.5rem; color:var(--gold); letter-spacing:.06em}
+.quote small{display:block; font-family:var(--font-body); font-size:.8rem; letter-spacing:.3em; color:var(--muted); margin-top:4px}
+
+/* ---------- gilt divider ---------- */
+.gilt{display:flex; align-items:center; gap:14px; margin:34px auto; color:var(--gold)}
+.gilt::before,.gilt::after{content:""; flex:1; height:6px; border-top:1px solid var(--rule); border-bottom:1px solid var(--rule)}
+.gilt i{width:12px; height:12px; background:var(--gold); transform:rotate(45deg); display:block}
+
+/* ---------- nav ---------- */
+nav.toc{display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin:0 0 6px}
+nav.toc a{
+  text-decoration:none; color:var(--ink); font-size:.78rem; letter-spacing:.2em; text-transform:uppercase; font-weight:600;
+  padding:9px 16px; border:1px solid var(--rule); background:var(--surface);
+}
+nav.toc a:hover{background:var(--gold); color:var(--bg)}
+
+/* ---------- sections ---------- */
+section{padding:18px 0 8px}
+.sec-head{display:flex; align-items:baseline; gap:18px; flex-wrap:wrap; margin-bottom:18px}
+.sec-head .no{font-family:var(--font-display); font-size:3.4rem; line-height:.9; color:var(--gold)}
+.sec-head h2{font-size:clamp(1.9rem,5vw,2.8rem); letter-spacing:.05em; text-transform:uppercase}
+.lead{color:var(--muted); font-size:1.05rem}
+
+/* ---------- colour blocks ---------- */
+.block{
+  --edge:var(--gold); --b-bg:var(--surface); --b-fg:var(--ink);
+  background:var(--b-bg); color:var(--b-fg); padding:16px 20px 14px; margin:18px 0;
+  border-top:3px solid var(--edge); position:relative;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%);
+}
+.block .tag{display:block; font-size:.72rem; letter-spacing:.32em; text-transform:uppercase; font-weight:700; color:var(--edge); margin-bottom:6px}
+.block p:last-child{margin-bottom:0}
+.block.note{--b-bg:var(--note-bg); --b-fg:var(--note-fg); --edge:var(--note-edge)}
+.block.info{--b-bg:var(--info-bg); --b-fg:var(--info-fg); --edge:var(--info-edge)}
+.block.tip{--b-bg:var(--tip-bg); --b-fg:var(--tip-fg); --edge:var(--tip-edge)}
+.block.warn{--b-bg:var(--warn-bg); --b-fg:var(--warn-fg); --edge:var(--warn-edge)}
+.block code.i{background:rgba(0,0,0,.25); color:inherit}
+
+/* ---------- code plate ---------- */
+.plate{margin:16px 0 22px; background:var(--code-bg); border:1px solid var(--rule); box-shadow:0 0 0 4px var(--bg), 0 0 0 5px var(--rule)}
+.plate-bar{display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--code-bar); padding:8px 8px 8px 16px; border-bottom:1px solid var(--rule)}
+.plate-bar span{font-size:.72rem; letter-spacing:.28em; text-transform:uppercase; color:var(--gold); font-weight:600}
+.copy{
+  font:600 .7rem var(--font-body); letter-spacing:.22em; text-transform:uppercase; cursor:pointer;
+  background:transparent; color:var(--gold); border:1px solid var(--rule); padding:7px 14px;
+}
+.copy:hover{background:var(--gold); color:#07100F}
+.copy.ok{background:var(--tk-fn); color:#07100F; border-color:var(--tk-fn)}
+.plate pre{margin:0; padding:16px 18px; overflow-x:auto; font-family:var(--font-mono); font-size:.84rem; line-height:1.7; color:var(--code-fg); tab-size:2}
+.plate code{font-family:inherit}
+.t-com{color:var(--tk-com); font-style:italic}.t-str{color:var(--tk-str)}.t-fn{color:var(--tk-fn)}
+.t-arg{color:var(--tk-arg)}.t-num{color:var(--tk-num)}.t-kw{color:var(--tk-kw)}
+
+/* ---------- route tabs ---------- */
+.tabs{display:flex; flex-wrap:wrap; gap:8px; margin:20px 0 0}
+.tab{
+  --c:var(--gold);
+  font:600 .8rem var(--font-body); letter-spacing:.16em; text-transform:uppercase; cursor:pointer;
+  padding:11px 16px; background:var(--surface); color:var(--ink); border:1px solid var(--rule); border-bottom:4px solid var(--c);
+}
+.tab[aria-selected="true"]{background:var(--c); color:#07100F; border-color:var(--c)}
+.tab[data-c="a"]{--c:#3FBF9F}.tab[data-c="b"]{--c:#6FA8EA}.tab[data-c="c"]{--c:#E3B94F}
+.tab[data-c="d"]{--c:#E86A80}.tab[data-c="e"]{--c:#C79BF2}.tab[data-c="f"]{--c:#F0945A}
+.panel{padding-top:6px}
+.panel[hidden]{display:none!important}
+.panel h3{font-size:1.7rem; letter-spacing:.05em; margin:18px 0 8px; color:var(--gold)}
+
+/* ---------- table ---------- */
+.tbl{overflow-x:auto; margin:16px 0; border:1px solid var(--rule)}
+table{border-collapse:collapse; width:100%; min-width:640px; font-size:.95rem}
+th{font-size:.72rem; letter-spacing:.24em; text-transform:uppercase; text-align:left; background:var(--surface-2); color:var(--gold); padding:12px 14px}
+td{padding:11px 14px; border-top:1px solid var(--rule); vertical-align:top}
+td:first-child{font-family:var(--font-mono); font-size:.84rem; color:var(--gold); white-space:nowrap}
+td code.i{font-size:.8em}
+
+/* ---------- step list / outputs ---------- */
+.steps{counter-reset:s; list-style:none; margin:0; padding:0; display:grid; gap:12px}
+.steps li{counter-increment:s; display:grid; grid-template-columns:52px 1fr; gap:14px; align-items:start; background:var(--surface); padding:14px 18px; min-width:0}
+.steps li::before{content:counter(s); font-family:var(--font-display); font-size:2.6rem; line-height:1; color:var(--gold); text-align:center}
+.steps strong{color:var(--gold); font-weight:600}
+.files{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px; margin:16px 0}
+.file{background:var(--surface); border-top:3px solid var(--gold); padding:14px 16px; min-width:0}
+.file b{display:block; font-family:var(--font-mono); font-size:.8rem; color:var(--gold); font-weight:500; overflow-wrap:anywhere}
+.file span{font-size:.92rem; color:var(--muted)}
+.file:nth-child(4n+2){border-top-color:#3FBF9F}.file:nth-child(4n+3){border-top-color:#6FA8EA}.file:nth-child(4n+4){border-top-color:#E86A80}
+
+footer{text-align:center; padding:30px 0 56px}
+footer .logo{font-family:var(--font-display); font-size:2rem; letter-spacing:.5em; color:var(--gold); padding-left:.5em}
+footer p{margin:8px auto; color:var(--muted); font-size:.9rem; letter-spacing:.12em}
+@media (max-width:520px){
+  body{font-size:16px}
+  .steps li{grid-template-columns:38px 1fr}
+  .steps li::before{font-size:2rem}
+  .sec-head .no{font-size:2.6rem}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <svg class="sun" viewBox="0 0 560 290" role="img" aria-label="Art deco sunburst">
+    <defs>
+      <linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--gold)"/><stop offset="1" stop-color="var(--gold-deep)"/></linearGradient>
+    </defs>
+    <g transform="translate(280 280)" stroke="url(#g)" fill="none" stroke-linecap="butt">
+      <path d="M-270 0A270 270 0 0 1 270 0" stroke-width="1.5"/>
+      <path d="M-228 0A228 228 0 0 1 228 0" stroke-width="1.5"/>
+      <path d="M-186 0A186 186 0 0 1 186 0" stroke-width="5"/>
+      <path d="M-120 0A120 120 0 0 1 120 0" stroke-width="1.5"/>
+      <g stroke-width="2">
+        <path d="M0 -120V-186"/><path d="M-31 -116L-48 -180"/><path d="M31 -116L48 -180"/>
+        <path d="M-60 -104L-93 -161"/><path d="M60 -104L93 -161"/>
+        <path d="M-85 -85L-131 -131"/><path d="M85 -85L131 -131"/>
+        <path d="M-104 -60L-161 -93"/><path d="M104 -60L161 -93"/>
+        <path d="M-116 -31L-180 -48"/><path d="M116 -31L180 -48"/>
+      </g>
+      <g stroke-width="1.2">
+        <path d="M0 -190V-270"/><path d="M-47 -184L-70 -261"/><path d="M47 -184L70 -261"/>
+        <path d="M-93 -161L-135 -234"/><path d="M93 -161L135 -234"/>
+        <path d="M-131 -131L-191 -191"/><path d="M131 -131L191 -191"/>
+        <path d="M-161 -93L-234 -135"/><path d="M161 -93L234 -135"/>
+        <path d="M-184 -47L-261 -70"/><path d="M184 -47L261 -70"/>
+      </g>
+      <path d="M-120 0H120" stroke-width="2"/>
+      <path d="M-60 0A60 60 0 0 1 60 0Z" fill="url(#g)" stroke="none"/>
+    </g>
+  </svg>
+  <div class="eyebrow">Quick Start Guide</div>
+  <h1>Cell<span>Reprogram</span>R</h1>
+  <p class="sub" style="margin-inline:auto">In silico cellular reprogramming</p>
+  <div class="quote">“A single spark can start a prairie fire.”<small>LOUWENYUAN</small></div>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#install">Install</a><a href="#first">First run</a><a href="#routes">Input routes</a>
+  <a href="#params">Parameters</a><a href="#output">Output</a><a href="#help">Troubleshooting</a>
+</nav>
+
+<div class="gilt"><i></i></div>
+
+<!-- ============ INSTALL ============ -->
+<section id="install">
+  <div class="sec-head"><span class="no">I</span><h2>Install</h2></div>
+  <p class="lead">Remove any old copy, then install the latest version from GitHub with <code class="i">pak</code>.</p>
+  <div class="plate"><div class="plate-bar"><span>R console</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="r"># 1. remove an old copy (if present)
+if ("CellReprogramR" %in% rownames(installed.packages())) {
+  remove.packages("CellReprogramR")
+}
+
+# 2. install pak, then the newest CellReprogramR from GitHub
+if (!requireNamespace("pak", quietly = TRUE)) install.packages("pak")
+pak::pkg_install("louwenyuan/CellReprogramR", upgrade = TRUE)
+
+# 3. load it and fix the random seed
+library(CellReprogramR)
+set.seed(2026)</code></pre></div>
+  <div class="block info"><span class="tag">Check the version</span>
+    <p>Confirm you really have the newest build: <code class="i">packageDescription("CellReprogramR")$RemoteSha</code> should match the latest commit on GitHub.</p></div>
+</section>
+
+<div class="gilt"><i></i></div>
+
+<!-- ============ FIRST RUN ============ -->
+<section id="first">
+  <div class="sec-head"><span class="no">II</span><h2>First run</h2></div>
+  <p class="lead">One line, no arguments. The built-in demo runs end to end.</p>
+  <div class="plate"><div class="plate-bar"><span>R console</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="r">library(CellReprogramR)
+
+# runs the packaged demo: four tumour states  ->  Oligodendrocyte
+results <- run_reprogramming_pipeline()</code></pre></div>
+  <div class="block note"><span class="tag">What the demo does</span>
+    <p>It loads the example Seurat object and the small L1000 tables shipped in <code class="i">inst/extdata</code>. The start cells are <code class="i">MES-like</code>, <code class="i">AC-like</code>, <code class="i">NPC-like</code> and <code class="i">OPC-like</code>, and the end cell is <code class="i">Oligodendrocyte</code>. Only labels that really exist in the object are used.</p></div>
+  <div class="block tip"><span class="tag">What you get back</span>
+    <p><code class="i">results</code> is a list holding <code class="i">synergy_table</code>, <code class="i">combo_res</code>, <code class="i">phase_space</code>, <code class="i">flow_df</code>, <code class="i">selected_drugs</code>, <code class="i">plots</code>, <code class="i">run_log</code> and <code class="i">output_dir</code>.</p></div>
+</section>
+
+<div class="gilt"><i></i></div>
+
+<!-- ============ ROUTES ============ -->
+<section id="routes">
+  <div class="sec-head"><span class="no">III</span><h2>Six ways to feed it</h2></div>
+  <p class="lead">Every route calls the same function. Pick the tab that matches how much you want to decide yourself.</p>
+
+  <div class="tabs" role="tablist" aria-label="Input routes">
+    <button class="tab" role="tab" data-c="a" id="t-a" aria-controls="p-a" aria-selected="true">A · Demo</button>
+    <button class="tab" role="tab" data-c="b" id="t-b" aria-controls="p-b" aria-selected="false">B · Pick by menu</button>
+    <button class="tab" role="tab" data-c="c" id="t-c" aria-controls="p-c" aria-selected="false">C · Slots in code</button>
+    <button class="tab" role="tab" data-c="d" id="t-d" aria-controls="p-d" aria-selected="false">D · Object in memory</button>
+    <button class="tab" role="tab" data-c="e" id="t-e" aria-controls="p-e" aria-selected="false">E · Your colours</button>
+    <button class="tab" role="tab" data-c="f" id="t-f" aria-controls="p-f" aria-selected="false">F · Colour popup</button>
+  </div>
+
+  <!-- A -->
+  <div class="panel" role="tabpanel" id="p-a" aria-labelledby="t-a">
+    <h3>A · Built-in demo</h3>
+    <div class="block note"><span class="tag">Use it when</span><p>You want to see the whole pipeline work before touching your own data.</p></div>
+    <div class="plate"><div class="plate-bar"><span>R console</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="r">results <- run_reprogramming_pipeline()</code></pre></div>
+  </div>
+
+  <!-- B -->
+  <div class="panel" role="tabpanel" id="p-b" aria-labelledby="t-b" hidden>
+    <h3>B · Choose start and end cells from a menu</h3>
+    <div class="block info"><span class="tag">Use it when</span><p>You have a Seurat file but are not sure which column or labels to use. Give only the file paths. In an interactive R session the wizard lists your metadata columns, then the cell types, and lets you pick the end cell and the start cells.</p></div>
+    <div class="plate"><div class="plate-bar"><span>R console</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="r">results <- run_reprogramming_pipeline(
+  rds_path          = "D:/second/npj_glioma/infercnv/GBM_scRNA_annotated_v4_CNV.rds",  # your single-cell object
+  meta_parquet_path = "D:/Cell/data/l1000_cns_meta.parquet",                             # your L1000 metadata
+  output_dir        = "./Output"
+)</code></pre></div>
+    <div class="block tip"><span class="tag">Tip</span><p>Complex Seurat objects often carry several annotation levels. In the first menu pick the column that holds the states you care about (here <code class="i">CellState</code>).</p></div>
+  </div>
+
+  <!-- C -->
+  <div class="panel" role="tabpanel" id="p-c" aria-labelledby="t-c" hidden>
+    <h3>C · Write the start and end slots in code</h3>
+    <div class="block tip"><span class="tag">Use it when</span><p>You know exactly what you want, or you are running a script without a keyboard. <b>Always name the column</b> with <code class="i">cell_type_col</code>.</p></div>
+    <p><b>One start state</b></p>
+    <div class="plate"><div class="plate-bar"><span>R console</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="r">results <- run_reprogramming_pipeline(
+  rds_path          = "D:/second/npj_glioma/infercnv/GBM_scRNA_annotated_v4_CNV.rds",
+  meta_parquet_path = "D:/Cell/data/l1000_cns_meta.parquet",
+  cell_type_col     = "CellState",              # the column that holds your labels
+  source_types      = c("MES-like"),            # start
+  target_type       = "Oligodendrocyte",        # end
+  output_dir        = "./Output"
+)</code></pre></div>
+    <p><b>Several start states at once</b> (a candidate must move all of them towards the target)</p>
+    <div class="plate"><div class="plate-bar"><span>R console</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="r">results <- run_reprogramming_pipeline(
+  rds_path          = "D:/second/npj_glioma/infercnv/GBM_scRNA_annotated_v4_CNV.rds",
+  meta_parquet_path = "D:/Cell/data/l1000_cns_meta.parquet",
+  cell_type_col     = "CellState",
+  source_types      = c("MES-like", "AC-like", "NPC-like", "OPC-like"),
+  target_type       = "Oligodendrocyte",
+  output_dir        = "./Output"
+)</code></pre></div>
+    <p><b>Write the slots once for the whole session</b></p>
+    <div class="plate"><div class="plate-bar"><span>R console</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="r">options(
+  CellReprogramR.target_type  = "Oligodendrocyte",
+  CellReprogramR.source_types = c("MES-like", "AC-like")
+)
+results <- run_reprogramming_pipeline(rds_path = "path/to/object.rds", cell_type_col = "CellState")</code></pre></div>
+    <div class="block warn"><span class="tag">Label not found?</span><p>Matching ignores case and punctuation. If a label is not in <code class="i">cell_type_col</code>, the function looks for one other column that contains all of your labels and tells you which one it used. If none does, it stops and prints the labels that are available.</p></div>
+  </div>
+
+  <!-- D -->
+  <div class="panel" role="tabpanel" id="p-d" aria-labelledby="t-d" hidden>
+    <h3>D · Use a Seurat object already in memory</h3>
+    <div class="block info"><span class="tag">Use it when</span><p>The object is already loaded, or you subset or recoloured it earlier in the session. Pass it as <code class="i">obj</code> instead of <code class="i">rds_path</code>.</p></div>
+    <div class="plate"><div class="plate-bar"><span>R console</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="r">seu <- readRDS("D:/second/npj_glioma/infercnv/GBM_scRNA_annotated_v4_CNV.rds")
+table(seu$CellState)                       # look at the labels first
+
+results <- run_reprogramming_pipeline(
+  obj               = seu,
+  meta_parquet_path = "D:/Cell/data/l1000_cns_meta.parquet",
+  cell_type_col     = "CellState",
+  source_types      = c("MES-like", "AC-like"),
+  target_type       = "Oligodendrocyte",
+  output_dir        = "./Output"
+)</code></pre></div>
+  </div>
+
+  <!-- E -->
+  <div class="panel" role="tabpanel" id="p-e" aria-labelledby="t-e" hidden>
+    <h3>E · Keep your own colours</h3>
+    <div class="block tip"><span class="tag">Use it when</span><p>You want every figure to match the colours of your earlier plots. Give a named vector; names are your cell labels. Any label you do not list gets a colour from the default palette.</p></div>
+    <div class="plate"><div class="plate-bar"><span>R console</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="r">results <- run_reprogramming_pipeline(
+  rds_path          = "D:/second/npj_glioma/infercnv/GBM_scRNA_annotated_v4_CNV.rds",
+  meta_parquet_path = "D:/Cell/data/l1000_cns_meta.parquet",
+  cell_type_col     = "CellState",
+  source_types      = c("MES-like", "AC-like", "NPC-like", "OPC-like"),
+  target_type       = "Oligodendrocyte",
+  cell_colors       = c(
+    "MES-like"             = "#FF595E",
+    "Macrophage (MDM-TAM)" = "#F15BB5",
+    "Microglia"            = "#FFCA3A",
+    "T cell"               = "#FEE440",
+    "AC-like"              = "#1982C4",
+    "OPC-like"             = "#00BBF9",
+    "NPC-like"             = "#FF99C8",
+    "Endothelial"          = "#C77DFF",
+    "Mural / stromal"      = "#F94144",
+    "Oligodendrocyte"      = "#8AC926"
+  ),
+  output_dir        = "./Output"
+)</code></pre></div>
+    <p>Set the colours once for the session with <code class="i">set_cell_colors(c("MES-like" = "#FF595E", ...))</code>, or pass an unnamed vector to colour the types in their listed order.</p>
+  </div>
+
+  <!-- F -->
+  <div class="panel" role="tabpanel" id="p-f" aria-labelledby="t-f" hidden>
+    <h3>F · Type the colours in a pop-up</h3>
+    <div class="block note"><span class="tag">Use it when</span><p>You would rather type colours into a dialog than write a vector. A dialog (or the console, in plain R) lists your cell types. Type <code class="i">MES-like=#FF595E, AC-like=#1982C4</code>, an ordered list of hex codes, or R code such as <code class="i">c("MES-like" = "#FF595E")</code>. Leave it empty to keep the default palette.</p></div>
+    <div class="plate"><div class="plate-bar"><span>R console</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="r">results <- run_reprogramming_pipeline(
+  rds_path          = "D:/second/npj_glioma/infercnv/GBM_scRNA_annotated_v4_CNV.rds",
+  meta_parquet_path = "D:/Cell/data/l1000_cns_meta.parquet",
+  cell_type_col     = "CellState",
+  source_types      = c("MES-like", "AC-like"),
+  target_type       = "Oligodendrocyte",
+  color_input       = "popup",
+  output_dir        = "./Output"
+)</code></pre></div>
+  </div>
+</section>
+
+<div class="gilt"><i></i></div>
+
+<!-- ============ PARAMETERS ============ -->
+<section id="params">
+  <div class="sec-head"><span class="no">IV</span><h2>Parameters you will use</h2></div>
+  <div class="tbl"><table>
+    <thead><tr><th>Argument</th><th>What it does</th><th>Default</th></tr></thead>
+    <tbody>
+      <tr><td>rds_path / obj</td><td>Path to a Seurat <code class="i">.rds</code> file, or a Seurat object already loaded. Leave both empty to run the demo.</td><td>NULL</td></tr>
+      <tr><td>meta_parquet_path</td><td>L1000 signature metadata (<code class="i">.parquet</code>). The matrix file is found automatically or downloaded.</td><td>NULL</td></tr>
+      <tr><td>cell_type_col</td><td>Metadata column that holds your cell labels.</td><td>"CellType"</td></tr>
+      <tr><td>source_types</td><td>Start states. Leave empty to use every non-target type.</td><td>NULL</td></tr>
+      <tr><td>target_type</td><td>End state you want to reach.</td><td>NULL</td></tr>
+      <tr><td>cell_colors</td><td>Named colour vector for your cell labels.</td><td>NULL</td></tr>
+      <tr><td>color_input</td><td>"code" uses <code class="i">cell_colors</code>; "popup" opens a typing dialog.</td><td>"code"</td></tr>
+      <tr><td>cell_lines / pert_types</td><td>Filter L1000 signatures, for example by cell line or perturbation class.</td><td>NULL</td></tr>
+      <tr><td>drug1 / drug2</td><td>Two perturbations to combine. Empty means the two best distinct ones.</td><td>NULL</td></tr>
+      <tr><td>top_n</td><td>How many candidates appear in the ranked plots.</td><td>10</td></tr>
+      <tr><td>n_perm</td><td>Permutations for the significance test.</td><td>1000</td></tr>
+      <tr><td>flow_method</td><td>Arrow field on the UMAP: "auto", "target" or "manifold".</td><td>"auto"</td></tr>
+      <tr><td>make_figure</td><td>Build one assembled multi-panel figure.</td><td>TRUE</td></tr>
+      <tr><td>figure_page</td><td>"auto" lets the page grow; "A4" or "A3" fixes the page.</td><td>"auto"</td></tr>
+      <tr><td>gradient_style</td><td>"dopamine" gives each bar plot a different random gradient; "reds" uses white to red.</td><td>"dopamine"</td></tr>
+      <tr><td>gradient_seed</td><td>Reproduce a particular random gradient draw.</td><td>NULL</td></tr>
+      <tr><td>seed</td><td>Random seed for the permutation tests.</td><td>2026</td></tr>
+      <tr><td>run_survival</td><td>Optional TCGA / CGGA survival check using virtual marker genes.</td><td>FALSE</td></tr>
+      <tr><td>run_pk</td><td>Optional benchmark against reference perturbagens and global rank.</td><td>TRUE</td></tr>
+      <tr><td>output_dir</td><td>Folder for every figure and table.</td><td>"./Output"</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<div class="gilt"><i></i></div>
+
+<!-- ============ OUTPUT ============ -->
+<section id="output">
+  <div class="sec-head"><span class="no">V</span><h2>What lands in the folder</h2></div>
+  <p class="lead">Each output is produced on its own. If one fails, it is reported and the next one still runs.</p>
+  <div class="files">
+    <div class="file"><b>Reprogramming_2D_Vector_Flow</b><span>UMAP with metacells and arrows showing the predicted movement towards the target.</span></div>
+    <div class="file"><b>Waddington_2D_Landscape</b><span>Density-based quasi-potential landscape of the metacells.</span></div>
+    <div class="file"><b>Synergy_Candidates_Dashboard</b><span>Ranked horizontal bars with dose, exposure time and perturbation class.</span></div>
+    <div class="file"><b>Candidates_Circular_Bar</b><span>The same ranking drawn as a circular bar chart.</span></div>
+    <div class="file"><b>Candidates_Synergy_Forest_Plot</b><span>Top-20 candidates ranked by synergy score, with the same annotations.</span></div>
+    <div class="file"><b>CellReprogramR_Assembled_Figure</b><span>All panels combined as A, B, C. Auto-sized unless you ask for A4 or A3.</span></div>
+    <div class="file"><b>Reprogramming_Report.xlsx</b><span>Tables behind every plot, ready for supplementary material.</span></div>
+  </div>
+  <div class="block tip"><span class="tag">Reading the console</span>
+    <p>Nine numbered steps scroll past. A green check means done, a yellow exclamation mark is a warning that was handled, a red cross is an error. Steps 1 to 4 are required; later steps are skipped on error and listed in <code class="i">results$run_log</code>.</p></div>
+</section>
+
+<div class="gilt"><i></i></div>
+
+<!-- ============ HELP ============ -->
+<section id="help">
+  <div class="sec-head"><span class="no">VI</span><h2>If something looks wrong</h2></div>
+
+  <div class="block warn"><span class="tag">The figure shows cells I never asked for</span>
+    <p>Look at the first console step. If it says <code class="i">running on the built-in demo data</code>, no input file was read. If the run stopped with a red message, the figure in your folder is an old one from a previous run. Use a new <code class="i">output_dir</code> such as <code class="i">"./Output_new"</code> to be sure.</p></div>
+
+  <div class="block warn"><span class="tag">Every non-target cell became a start cell</span>
+    <p>That happens when <code class="i">source_types</code> is empty. Name the start states and the column: <code class="i">cell_type_col = "CellState"</code>, <code class="i">source_types = c("MES-like", ...)</code>.</p></div>
+
+  <div class="block info"><span class="tag">Which column holds my labels?</span>
+    <p>Print the candidates and pick the one that contains your start and end states.</p></div>
+  <div class="plate"><div class="plate-bar"><span>R console</span><button class="copy" type="button">Copy</button></div>
+<pre><code class="r">seu <- readRDS("path/to/object.rds")
+for (cc in colnames(seu@meta.data)) {
+  v <- seu@meta.data[[cc]]
+  if ((is.character(v) || is.factor(v)) && nlevels(factor(v)) < 40) {
+    cat("\n==", cc, "==\n"); print(table(v))
+  }
+}</code></pre></div>
+
+  <div class="block note"><span class="tag">Reproducibility</span>
+    <p>Use <code class="i">seed = 2026</code> (the default) for the permutation tests and <code class="i">gradient_seed = 1</code> (any integer) to reproduce the same random bar colours.</p></div>
+
+  <div class="block tip"><span class="tag">Read the scores with care</span>
+    <p>Scores are model-based predictions of how well a signature aligns with the path from your start to your end state. They are a ranking for hypothesis generation and need experimental validation.</p></div>
+</section>
+
+<div class="gilt"><i></i></div>
+
+<footer>
+  <div class="logo">LOUWENYUAN</div>
+  <p>CellReprogramR · In silico cellular reprogramming</p>
+  <p>“A single spark can start a prairie fire.”</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  /* ---- tiny R highlighter ---- */
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  var re=/(#[^\n]*)|("(?:[^"\\]|\\.)*")|(\b\d+(?:\.\d+)?\b)|(\b(?:function|TRUE|FALSE|NULL|if|else|for|in|library|require)\b)|([A-Za-z_.][A-Za-z0-9_.:]*)(?=\()|([A-Za-z_.][A-Za-z0-9_.]*)(?=\s*=[^=])/g;
+  document.querySelectorAll('code.r').forEach(function(el){
+    var src=el.textContent, out='', last=0, m;
+    el.setAttribute('data-src',src);
+    re.lastIndex=0;
+    while((m=re.exec(src))){
+      out+=esc(src.slice(last,m.index));
+      var cls=m[1]?'t-com':m[2]?'t-str':m[3]?'t-num':m[4]?'t-kw':m[5]?'t-fn':'t-arg';
+      out+='<span class="'+cls+'">'+esc(m[0])+'</span>';
+      last=m.index+m[0].length;
+    }
+    out+=esc(src.slice(last));
+    el.innerHTML=out;
+  });
+
+  /* ---- copy buttons ---- */
+  function fallbackCopy(txt){
+    var ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select(); var ok=false;
+    try{ok=document.execCommand('copy');}catch(e){}
+    document.body.removeChild(ta); return ok;
+  }
+  document.querySelectorAll('.copy').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var code=btn.closest('.plate').querySelector('code');
+      var txt=code.getAttribute('data-src')||code.textContent;
+      function done(ok){
+        btn.textContent=ok?'Copied':'Select & copy'; btn.classList.toggle('ok',ok);
+        setTimeout(function(){btn.textContent='Copy'; btn.classList.remove('ok');},1600);
+      }
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(txt).then(function(){done(true)},function(){done(fallbackCopy(txt))});
+      } else done(fallbackCopy(txt));
+    });
+  });
+
+  /* ---- route tabs ---- */
+  var tabs=[].slice.call(document.querySelectorAll('.tab'));
+  function show(t){
+    tabs.forEach(function(x){
+      var on=x===t; x.setAttribute('aria-selected',on?'true':'false'); x.tabIndex=on?0:-1;
+      document.getElementById(x.getAttribute('aria-controls')).hidden=!on;
+    });
+  }
+  tabs.forEach(function(t,i){
+    t.addEventListener('click',function(){show(t)});
+    t.addEventListener('keydown',function(e){
+      var n=e.key==='ArrowRight'?i+1:e.key==='ArrowLeft'?i-1:null;
+      if(n===null)return; e.preventDefault(); var nt=tabs[(n+tabs.length)%tabs.length]; show(nt); nt.focus();
+    });
+  });
+  show(tabs[0]);
+})();
+</script>
+
+</body></html>
