@@ -1,3 +1,4 @@
+<img width="3000" height="2490" alt="Candidates_Synergy_Forest_Plot" src="https://github.com/user-attachments/assets/e91ac95b-aa33-4d7d-be90-6b5591e44a80" />
 <img width="2320" height="1618" alt="image" src="https://github.com/user-attachments/assets/210b9064-30e3-4bda-bc2b-44535f88ba4a" />Quick Start Guide https://louwenyuan.github.io/CellReprogramR/
 
 # CellReprogramR(v0.2.0)
