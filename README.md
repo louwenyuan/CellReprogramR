@@ -1,5 +1,6 @@
-<img width="3000" height="2490" alt="Candidates_Synergy_Forest_Plot" src="https://github.com/user-attachments/assets/e91ac95b-aa33-4d7d-be90-6b5591e44a80" />
-<img width="2320" height="1618" alt="image" src="https://github.com/user-attachments/assets/210b9064-30e3-4bda-bc2b-44535f88ba4a" />Quick Start Guide https://louwenyuan.github.io/CellReprogramR/
+<img width="1976" height="1658" alt="image" src="https://github.com/user-attachments/assets/46b67ceb-a48f-4830-bd18-eccd3d17c287" />
+<img width="3000" height="2490" alt="Candidates_Synergy_Forest_Plot" src="https://github.com/user-attachments/assets/225693d8-1a5b-4a3b-b659-8238cecc207e" />
+https://louwenyuan.github.io/CellReprogramR/
 
 # CellReprogramR(v0.2.0)
 
