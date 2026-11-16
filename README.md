@@ -1,4 +1,4 @@
-Quick Start Guide
+Quick Start Guide https://louwenyuan.github.io/CellReprogramR/
 
 # CellReprogramR(v0.2.0)
 
