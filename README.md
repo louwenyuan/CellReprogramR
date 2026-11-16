@@ -1,4 +1,4 @@
-Quick Start Guide https://louwenyuan.github.io/CellReprogramR/
+<img width="2320" height="1618" alt="image" src="https://github.com/user-attachments/assets/210b9064-30e3-4bda-bc2b-44535f88ba4a" />Quick Start Guide https://louwenyuan.github.io/CellReprogramR/
 
 # CellReprogramR(v0.2.0)
 
@@ -8,7 +8,6 @@ In silico cellular reprogramming
 
 [Install](#install) [First run](#first)  [Input routes](#routes)  [Parameters](#params)  [Output](#output) [Troubleshooting](#help)
 
-![Uploading image.png…]()
 
 
 I
